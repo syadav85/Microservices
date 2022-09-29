@@ -18,6 +18,10 @@ var plugin = function (options) {
         this.make('product').remove$(msg.data.product_id, respond);
     });
 
+    seneca.add({ role: 'product', cmd: 'delete-all' }, function (msg, respond) {
+        this.make('product').remove$({}, respond);
+    });
+
 
 }
 
@@ -69,7 +73,11 @@ seneca.add('role:api, cmd:delete-product', function (args, done) {
 });
 
 seneca.add('role:api, cmd:delete-all-products', function (args, done) {
-    done(null, { cmd: "delete-all-products" });
+    console.log("--> cmd:delete-all-products");
+    seneca.act({ role: 'product', cmd: 'delete-all' }, function (err, msg) {
+        console.log(msg);
+        done(err, msg);
+    });
 });
 
 seneca.act('role:web', {
@@ -77,16 +85,28 @@ seneca.act('role:web', {
         prefix: '/products',
         pin: { role: 'api', cmd: '*' },
         map: {
-            'add-product': { GET: true },
+            'add-product': { POST: true },
             'get-all-products': { GET: true },
             'get-product': { GET: true, },
-            'delete-product': { GET: true, }
+            'delete-product': { GET: true, },
+            'delete-all-products': { GET: true, }
         }
     }
 })
 
+let countGET = 0;
+let countPOST = 0;
+
+function countMiddleWare(req, res, next) {
+    if(req.method === "GET")countGET++;
+    if(req.method === "POST")countPOST++;
+    console.log("Processed Request Count -> Get: " + countGET+ " , Post: "+ countPOST);
+    if(next)next();
+}
+
 var express = require('express');
 var app = express();
+app.use(countMiddleWare);
 app.use(require("body-parser").json())
 app.use(seneca.export('web'));
 
@@ -98,3 +118,4 @@ console.log("http://localhost:3009/products/add-product?product=Laptop&price=201
 console.log("http://localhost:3009/products/get-all-products");
 console.log("http://localhost:3009/products/get-product?product_id=12345");
 console.log("http://localhost:3009/products/delete-product?product_id=12345");
+console.log("http://localhost:3009/products/delete-all-products");

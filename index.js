@@ -19,7 +19,13 @@ var plugin = function (options) {
     });
 
     seneca.add({ role: 'product', cmd: 'delete-all' }, function (msg, respond) {
-        this.make('product').remove$({}, respond);
+        seneca.act({ role: 'product', cmd: 'get-all' }, function (msg, respond) {
+            var listOfProducts = msg.data;
+            listOfProducts.forEach(function( item ){
+                console.log(item)
+                this.make('product').remove$(item.data.product_id, respond);
+              })
+        });      
     });
 
 
@@ -74,7 +80,7 @@ seneca.add('role:api, cmd:delete-product', function (args, done) {
 
 seneca.add('role:api, cmd:delete-all-products', function (args, done) {
     console.log("--> cmd:delete-all-products");
-    seneca.act({ role: 'product', cmd: 'delete-all' }, function (err, msg) {
+     seneca.act({ role: 'product', cmd: 'delete-all' }, function (err, msg) {
         console.log(msg);
         done(err, msg);
     });
